@@ -254,6 +254,7 @@
           <button class="chip" data-category="Strength">Strength</button>
           <button class="chip" data-category="Cardio">Cardio</button>
           <button class="chip" data-category="HIIT">HIIT</button>
+          <button class="chip" data-category="Calisthenics">Calisthenics</button>
           <button class="chip" data-category="Custom">Custom</button>
         </div>
         <div class="routine-grid" id="routineGrid"></div>
@@ -344,6 +345,18 @@
         ]},
         { id:"lower-power", name:"Lower Body Power", category:"Strength", emoji:"🦿", description:"Train your legs and glutes with a balanced strength session.", duration:40, exercises:[
           {name:"Dumbbell Split Squat",sets:3,reps:10,weight:12},{name:"Hip Thrust",sets:3,reps:12,weight:30},{name:"Step-ups",sets:3,reps:10,weight:8},{name:"Standing Calf Raise",sets:3,reps:15,weight:0}
+        ]},
+        { id:"calisthenics-foundations", name:"Calisthenics Foundations", category:"Calisthenics", emoji:"🤸", description:"Practice classic bodyweight moves with steady, controlled reps.", duration:25, exercises:[
+          {name:"Incline Push-ups",sets:3,reps:8,weight:0},{name:"Bodyweight Squats",sets:3,reps:12,weight:0},{name:"Glute Bridges",sets:3,reps:12,weight:0},{name:"Dead Bug",sets:3,reps:8,weight:0}
+        ]},
+        { id:"calisthenics-upper", name:"Calisthenics Upper Body", category:"Calisthenics", emoji:"💪", description:"An equipment-free upper-body session. Scale reps to your level.", duration:30, exercises:[
+          {name:"Push-ups",sets:3,reps:8,weight:0},{name:"Pike Push-ups",sets:3,reps:6,weight:0},{name:"Prone Y-T Raises",sets:3,reps:10,weight:0},{name:"Close-Grip Knee Push-ups",sets:3,reps:8,weight:0}
+        ]},
+        { id:"calisthenics-lower", name:"Calisthenics Lower Body", category:"Calisthenics", emoji:"🦵", description:"Build lower-body strength and balance using just your bodyweight.", duration:30, exercises:[
+          {name:"Bodyweight Squats",sets:3,reps:15,weight:0},{name:"Reverse Lunges",sets:3,reps:10,weight:0},{name:"Single-Leg Glute Bridge",sets:3,reps:8,weight:0},{name:"Calf Raises",sets:3,reps:15,weight:0}
+        ]},
+        { id:"calisthenics-conditioning", name:"Calisthenics Conditioning", category:"Calisthenics", emoji:"🔥", description:"A simple bodyweight circuit to build stamina at your own pace.", duration:20, exercises:[
+          {name:"Step-back Burpees",sets:3,reps:6,weight:0},{name:"Mountain Climbers",sets:3,reps:20,weight:0},{name:"Alternating Step-back Lunges",sets:3,reps:10,weight:0},{name:"Knee Push-ups",sets:3,reps:8,weight:0}
         ]}
       ];
       const freshState = () => ({ version:1, profile:{name:"Athlete"}, xp:0, streak:0, lastWorkoutDate:null, routines:[], logs:[], active:null });
@@ -455,7 +468,7 @@
         document.getElementById("homeWorkouts").textContent = state.logs.length;
         document.getElementById("homeXpCard").innerHTML = xpCard();
         const routines = allRoutines();
-        const featuredIds = ["push","core-crusher","5k-builder","dumbbell-circuit"];
+        const featuredIds = ["push","calisthenics-foundations","5k-builder","dumbbell-circuit"];
         const featured = featuredIds.map(id => routines.find(routine => routine.id === id)).filter(Boolean);
         document.getElementById("featuredRoutines").innerHTML = featured.map(routineCard).join("");
       }

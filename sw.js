@@ -1,6 +1,6 @@
 "use strict";
 
-const CACHE_NAME = "fitforge-shell-v3";
+const CACHE_NAME = "fitforge-shell-v4";
 const APP_SHELL = [
   "./",
   "./index.html",
