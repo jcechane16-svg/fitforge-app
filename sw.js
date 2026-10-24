@@ -1,6 +1,6 @@
 "use strict";
 
-const CACHE_NAME = "fitforge-shell-v2";
+const CACHE_NAME = "fitforge-shell-v3";
 const APP_SHELL = [
   "./",
   "./index.html",
@@ -35,6 +35,18 @@ self.addEventListener("fetch", event => {
 
   event.respondWith((async () => {
     const cache = await caches.open(CACHE_NAME);
+    if (request.mode === "navigate" || new URL(request.url).pathname.endsWith("/index.html")) {
+      try {
+        const response = await fetch(request);
+        if (response.ok) await cache.put(request, response.clone());
+        return response;
+      } catch (error) {
+        const appShell = await cache.match(request) || await cache.match("./index.html");
+        if (appShell) return appShell;
+        throw error;
+      }
+    }
+
     const cached = await cache.match(request);
     if (cached) return cached;
 
@@ -43,10 +55,6 @@ self.addEventListener("fetch", event => {
       if (response.ok) await cache.put(request, response.clone());
       return response;
     } catch (error) {
-      if (request.mode === "navigate") {
-        const appShell = await cache.match("./index.html");
-        if (appShell) return appShell;
-      }
       throw error;
     }
   })());
