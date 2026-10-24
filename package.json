@@ -1,0 +1,23 @@
+{
+  "name": "fitforge",
+  "version": "1.0.0",
+  "private": true,
+  "description": "FitForge fitness tracker PWA and Android app",
+  "engines": {
+    "node": ">=20"
+  },
+  "scripts": {
+    "build:web": "node scripts/build-web.mjs",
+    "android:add": "npm run build:web && cap add android",
+    "android:sync": "npm run build:web && cap sync android",
+    "android:open": "cap open android",
+    "android:debug": "npm run android:sync && cd android && gradlew.bat assembleDebug"
+  },
+  "dependencies": {
+    "@capacitor/android": "^7.0.0",
+    "@capacitor/core": "^7.0.0"
+  },
+  "devDependencies": {
+    "@capacitor/cli": "^7.0.0"
+  }
+}
