@@ -8,4 +8,4 @@ await Promise.all([
   cp("icons", "www/icons", { recursive: true })
 ]);
 
-console.log("FitForge web assets prepared in www/");
+console.log("LevelUp Fitness web assets prepared in www/");

@@ -1,4 +1,4 @@
-name: Deploy FitForge to GitHub Pages
+name: Deploy LevelUp Fitness to GitHub Pages
 
 on:
   push:

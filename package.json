@@ -1,8 +1,8 @@
 {
-  "name": "fitforge",
+  "name": "levelup-fitness",
   "version": "1.0.0",
   "private": true,
-  "description": "FitForge fitness tracker PWA and Android app",
+  "description": "LevelUp Fitness gamified workout tracker PWA and Android app",
   "engines": {
     "node": ">=20"
   },

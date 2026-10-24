@@ -1,13 +1,13 @@
 "use strict";
 
-const CACHE_NAME = "fitforge-shell-v6";
+const CACHE_NAME = "fitforge-shell-v7";
 const APP_SHELL = [
   "./",
   "./index.html",
   "./manifest.webmanifest",
   "./icons/icon-192.png",
   "./icons/icon-512.png",
-  "./icons/fitforge.svg"
+  "./icons/levelup.svg"
 ];
 
 self.addEventListener("install", event => {

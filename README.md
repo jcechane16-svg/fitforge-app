@@ -1,6 +1,6 @@
-# FitForge app
+# LevelUp Fitness
 
-FitForge can run as an installable offline PWA or be wrapped in an Android app with Capacitor.
+LevelUp Fitness can run as an installable offline PWA or be wrapped in an Android app with Capacitor.
 
 ## Training features
 
@@ -8,13 +8,13 @@ The workout library includes strength, cardio, HIIT, calisthenics, mobility, and
 
 ## Install as a PWA
 
-Deploy the files in this folder to a static web host with HTTPS. Open the site in a supported browser and use **Install FitForge App** in Settings when the browser offers installation. For local development, serve the folder on `localhost`; opening `index.html` directly with `file://` does not enable service workers or PWA installation.
+Deploy the files in this folder to a static web host with HTTPS. Open the site in a supported browser and use **Install LevelUp Fitness** in Settings when the browser offers installation. The public app is available at [https://jcechane16-svg.github.io/levelup-fitness/](https://jcechane16-svg.github.io/levelup-fitness/). For local development, serve the folder on `localhost`; opening `index.html` directly with `file://` does not enable service workers or PWA installation.
 
 The service worker caches the app shell and same-origin resources for offline launches. Bump `CACHE_NAME` in `sw.js` when changing cached resources to invalidate the old shell cache.
 
 ## Build an Android debug APK
 
-Install Node.js 20 or newer, Android Studio with the Android SDK, and a supported JDK. In PowerShell, from this folder:
+The Android application ID is `com.levelupfitness.app`. Changing this ID means Android treats the renamed app as a separate app from any existing FitForge installation. Install Node.js 20 or newer, Android Studio with the Android SDK, and a supported JDK. In PowerShell, from this folder:
 
 ```powershell
 npm install

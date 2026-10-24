@@ -4,13 +4,13 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
   <meta name="theme-color" content="#10120f">
-  <meta name="description" content="Forge your fitness, one set at a time. A gamified workout tracker.">
+  <meta name="description" content="Level up your fitness, one set at a time. A gamified workout tracker.">
   <link rel="manifest" href="./manifest.webmanifest">
-  <link rel="icon" type="image/svg+xml" href="./icons/fitforge.svg">
+  <link rel="icon" type="image/svg+xml" href="./icons/levelup.svg">
   <meta name="mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-  <title>FitForge — Forge your fitness</title>
+  <title>LevelUp Fitness — Train. Level up.</title>
   <style>
     :root {
       color-scheme: dark;
@@ -230,7 +230,7 @@
 <body>
   <div class="app">
     <header>
-      <div class="brand"><span class="brand-mark">F</span> FitForge</div>
+      <div class="brand"><span class="brand-mark">L</span> LevelUp Fitness</div>
       <div class="header-actions">
         <button class="icon-btn" id="settingsButton" aria-label="Settings and data">⚙</button>
         <div class="avatar" id="avatar" aria-label="Profile">A</div>
@@ -434,13 +434,13 @@
           if (!parsed || typeof parsed !== "object") throw new Error("Invalid saved data");
           return { ...freshState(), ...parsed, profile:{...freshState().profile,...(parsed.profile || {})}, settings:normalizeSettings(parsed.settings), routines:Array.isArray(parsed.routines)?parsed.routines:[], favorites:Array.isArray(parsed.favorites)?parsed.favorites.filter(id=>typeof id==="string"):[], logs:Array.isArray(parsed.logs)?parsed.logs:[] };
         } catch (error) {
-          console.error("Could not load FitForge data:", error);
+          console.error("Could not load LevelUp Fitness data:", error);
           return freshState();
         }
       }
       function saveState() {
         try { localStorage.setItem(STORAGE_KEY, JSON.stringify(state)); }
-        catch (error) { console.error("Could not save FitForge data:", error); toast("Could not save data. Check device storage."); }
+        catch (error) { console.error("Could not save LevelUp Fitness data:", error); toast("Could not save data. Check device storage."); }
       }
       const allRoutines = () => [...seedRoutines, ...state.routines];
       // Derive level and progress directly from total XP to handle multiple level-ups.
@@ -460,9 +460,9 @@
         if(!state.settings.haptics) return;
         if(typeof navigator.vibrate!=="function") return;
         try {
-          if(!navigator.vibrate(pattern)) console.warn("FitForge vibration cue is unavailable on this device.");
+          if(!navigator.vibrate(pattern)) console.warn("LevelUp Fitness vibration cue is unavailable on this device.");
         } catch(error) {
-          console.warn("FitForge vibration cue is unavailable:",error);
+          console.warn("LevelUp Fitness vibration cue is unavailable:",error);
         }
       }
 
@@ -480,15 +480,15 @@
         if (isInstalled()) {
           button.textContent = "✓ App Installed";
           button.disabled = true;
-          status.textContent = "FitForge is installed and ready on your device.";
+          status.textContent = "LevelUp Fitness is installed and ready on your device.";
         } else if (deferredInstallPrompt) {
-          button.textContent = "📲 Install FitForge App";
+          button.textContent = "📲 Install LevelUp Fitness";
           button.disabled = false;
-          status.textContent = "Install FitForge directly to your home screen for quick access.";
+          status.textContent = "Install LevelUp Fitness directly to your home screen for quick access.";
         } else {
-          button.textContent = "📲 Install FitForge App";
+          button.textContent = "📲 Install LevelUp Fitness";
           button.disabled = true;
-          status.textContent = "Install is available when FitForge is served over HTTPS with a web app manifest and service worker. On iPhone, use Share → Add to Home Screen.";
+          status.textContent = "Install is available when LevelUp Fitness is served over HTTPS with a web app manifest and service worker. On iPhone, use Share → Add to Home Screen.";
         }
       }
       async function installApp() {
@@ -508,13 +508,13 @@
           const choice = await promptEvent.userChoice;
           if (choice?.outcome === "accepted") {
             const status = document.getElementById("installAppStatus");
-            if (status) status.textContent = "Thanks for installing FitForge!";
+            if (status) status.textContent = "Thanks for installing LevelUp Fitness!";
           } else {
             const status = document.getElementById("installAppStatus");
-            if (status) status.textContent = "Installation was dismissed. You can install FitForge later from your browser menu.";
+            if (status) status.textContent = "Installation was dismissed. You can install LevelUp Fitness later from your browser menu.";
           }
         } catch (error) {
-          console.error("Could not start FitForge installation:", error);
+          console.error("Could not start LevelUp Fitness installation:", error);
           toast("The browser could not start installation. Try the browser menu.");
         }
       }
@@ -707,7 +707,7 @@
         });
       }
       function showSettings() {
-        openModal(`<div class="modal-head"><h2 id="modalTitle">Settings & data</h2><button class="close-btn" data-close aria-label="Close">×</button></div><div class="field"><label for="profileName">Your display name</label><input id="profileName" maxlength="30" value="${safe(state.profile.name || "Athlete")}"></div><div class="settings-section"><h3>Training preferences</h3><p>Make FitForge work the way you train.</p></div><div class="field"><label for="weightUnitSetting">Weight units</label><select id="weightUnitSetting"><option value="kg" ${weightUnit()==="kg"?"selected":""}>Kilograms (kg)</option><option value="lb" ${weightUnit()==="lb"?"selected":""}>Pounds (lb)</option></select></div><div class="field"><label for="restDurationSetting">Default rest timer</label><select id="restDurationSetting">${[30,45,60,90,120].map(seconds=>`<option value="${seconds}" ${state.settings.restSeconds===seconds?"selected":""}>${seconds} seconds</option>`).join("")}</select></div><div class="field"><label for="weeklyGoalSetting">Weekly workout goal</label><select id="weeklyGoalSetting">${[2,3,4,5,6].map(goal=>`<option value="${goal}" ${state.settings.weeklyGoal===goal?"selected":""}>${goal} workouts per 7 days</option>`).join("")}</select></div><div class="settings-toggle"><label for="hapticsSetting"><strong>Rest timer vibration</strong><span>Vibrate when your rest is over.</span></label><div class="settings-toggle-actions"><button class="btn btn-quiet" id="testHapticsButton" type="button" ${state.settings.haptics?"":"disabled"}>Test</button><input type="checkbox" id="hapticsSetting" role="switch" aria-label="Enable rest timer vibration" ${state.settings.haptics?"checked":""}></div></div><div class="settings-section" style="margin-top:20px"><h3>App & data</h3><p>Install FitForge or manage your saved progress.</p></div><div class="settings-list"><div><button class="btn btn-secondary btn-block" id="installAppButton" type="button">📲 Install FitForge App</button><p class="install-status" id="installAppStatus" aria-live="polite"></p></div><button class="btn btn-secondary btn-block" id="exportButton">⇩ &nbsp; Export workout data (.json)</button><button class="btn btn-secondary btn-block" id="importButton">⇧ &nbsp; Import workout data (.json)</button><button class="btn btn-danger btn-block" id="clearDataButton">⌫ &nbsp; Clear all app data</button></div><p style="font-size:10px;margin-top:14px">Data is stored locally in this browser. Export a backup before clearing or changing devices.</p>`);
+        openModal(`<div class="modal-head"><h2 id="modalTitle">Settings & data</h2><button class="close-btn" data-close aria-label="Close">×</button></div><div class="field"><label for="profileName">Your display name</label><input id="profileName" maxlength="30" value="${safe(state.profile.name || "Athlete")}"></div><div class="settings-section"><h3>Training preferences</h3><p>Make LevelUp Fitness work the way you train.</p></div><div class="field"><label for="weightUnitSetting">Weight units</label><select id="weightUnitSetting"><option value="kg" ${weightUnit()==="kg"?"selected":""}>Kilograms (kg)</option><option value="lb" ${weightUnit()==="lb"?"selected":""}>Pounds (lb)</option></select></div><div class="field"><label for="restDurationSetting">Default rest timer</label><select id="restDurationSetting">${[30,45,60,90,120].map(seconds=>`<option value="${seconds}" ${state.settings.restSeconds===seconds?"selected":""}>${seconds} seconds</option>`).join("")}</select></div><div class="field"><label for="weeklyGoalSetting">Weekly workout goal</label><select id="weeklyGoalSetting">${[2,3,4,5,6].map(goal=>`<option value="${goal}" ${state.settings.weeklyGoal===goal?"selected":""}>${goal} workouts per 7 days</option>`).join("")}</select></div><div class="settings-toggle"><label for="hapticsSetting"><strong>Rest timer vibration</strong><span>Vibrate when your rest is over.</span></label><div class="settings-toggle-actions"><button class="btn btn-quiet" id="testHapticsButton" type="button" ${state.settings.haptics?"":"disabled"}>Test</button><input type="checkbox" id="hapticsSetting" role="switch" aria-label="Enable rest timer vibration" ${state.settings.haptics?"checked":""}></div></div><div class="settings-section" style="margin-top:20px"><h3>App & data</h3><p>Install LevelUp Fitness or manage your saved progress.</p></div><div class="settings-list"><div><button class="btn btn-secondary btn-block" id="installAppButton" type="button">📲 Install LevelUp Fitness</button><p class="install-status" id="installAppStatus" aria-live="polite"></p></div><button class="btn btn-secondary btn-block" id="exportButton">⇩ &nbsp; Export workout data (.json)</button><button class="btn btn-secondary btn-block" id="importButton">⇧ &nbsp; Import workout data (.json)</button><button class="btn btn-danger btn-block" id="clearDataButton">⌫ &nbsp; Clear all app data</button></div><p style="font-size:10px;margin-top:14px">Data is stored locally in this browser. Export a backup before clearing or changing devices.</p>`);
         updateInstallControl();
         document.getElementById("installAppButton").addEventListener("click", installApp);
         document.getElementById("profileName").addEventListener("change",event=>{state.profile.name=event.target.value.trim()||"Athlete";saveState();renderAll();document.getElementById("avatar").textContent=state.profile.name[0].toUpperCase();});
@@ -726,7 +726,7 @@
       function exportData() {
         const blob=new Blob([JSON.stringify({...state,exportedAt:new Date().toISOString()},null,2)],{type:"application/json"});
         const url=URL.createObjectURL(blob);
-        const link=document.createElement("a");link.href=url;link.download=`fitforge-backup-${today()}.json`;document.body.append(link);link.click();link.remove();URL.revokeObjectURL(url);
+        const link=document.createElement("a");link.href=url;link.download=`levelup-fitness-backup-${today()}.json`;document.body.append(link);link.click();link.remove();URL.revokeObjectURL(url);
         toast("Your backup is ready.");
       }
       function validImport(value) {
@@ -736,10 +736,10 @@
         const file=event.target.files?.[0]; if(!file)return;
         try {
           const imported=JSON.parse(await file.text());
-          if(!validImport(imported)) throw new Error("The file does not look like a valid FitForge backup.");
+          if(!validImport(imported)) throw new Error("The file does not look like a valid LevelUp Fitness backup.");
           openModal(`<div class="modal-head"><h2 id="modalTitle">Import backup?</h2><button class="close-btn" data-close>×</button></div><p style="font-size:13px;margin-bottom:18px">This replaces the progress, history and custom routines currently saved on this device.</p><div class="modal-actions"><button class="btn btn-secondary" data-close>Cancel</button><button class="btn btn-primary" id="confirmImport">Replace data</button></div>`);
           document.getElementById("confirmImport").addEventListener("click",()=>{state={...freshState(),...imported,profile:{...freshState().profile,...(imported.profile||{})},settings:normalizeSettings(imported.settings),favorites:Array.isArray(imported.favorites)?imported.favorites.filter(id=>typeof id==="string"):[],active:null};saveState();closeModal();renderAll();document.getElementById("avatar").textContent=(state.profile.name||"A")[0].toUpperCase();toast("Backup imported successfully.");});
-        } catch(error) { console.error("Could not import FitForge data:",error);toast(error instanceof SyntaxError?"That file is not valid JSON.":error.message||"Could not import this backup."); }
+        } catch(error) { console.error("Could not import LevelUp Fitness data:",error);toast(error instanceof SyntaxError?"That file is not valid JSON.":error.message||"Could not import this backup."); }
         finally { event.target.value=""; }
       });
       document.addEventListener("change",event=>{
@@ -784,7 +784,7 @@
       renderAll();
       if("serviceWorker" in navigator && location.protocol !== "file:") {
         navigator.serviceWorker.register("./sw.js").catch(error => {
-          console.error("Could not register FitForge offline support:", error);
+          console.error("Could not register LevelUp Fitness offline support:", error);
         });
       }
     })();

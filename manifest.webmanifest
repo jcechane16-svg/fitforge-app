@@ -1,8 +1,8 @@
 {
   "id": "./",
-  "name": "FitForge — Gamified Fitness Tracker",
-  "short_name": "FitForge",
-  "description": "Forge your fitness, one set at a time.",
+  "name": "LevelUp Fitness — Gamified Workout Tracker",
+  "short_name": "LevelUp",
+  "description": "Level up your fitness, one set at a time.",
   "start_url": "./index.html",
   "scope": "./",
   "display": "standalone",
@@ -24,7 +24,7 @@
       "purpose": "any maskable"
     },
     {
-      "src": "./icons/fitforge.svg",
+      "src": "./icons/levelup.svg",
       "sizes": "any",
       "type": "image/svg+xml",
       "purpose": "any maskable"
