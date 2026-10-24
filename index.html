@@ -323,6 +323,27 @@
         ]},
         { id:"hiit", name:"HIIT Inferno", category:"HIIT", emoji:"🔥", description:"Short bursts. Big energy. Zero excuses.", duration:25, exercises:[
           {name:"Burpees",sets:4,reps:12,weight:0},{name:"Mountain Climbers",sets:4,reps:30,weight:0},{name:"Jump Squats",sets:4,reps:15,weight:0},{name:"High Knees",sets:4,reps:30,weight:0}
+        ]},
+        { id:"upper-builder", name:"Upper Body Builder", category:"Strength", emoji:"🛡️", description:"A focused upper-body session for strength and control.", duration:40, exercises:[
+          {name:"Dumbbell Bench Press",sets:3,reps:10,weight:18},{name:"One-Arm Dumbbell Row",sets:3,reps:10,weight:18},{name:"Seated Shoulder Press",sets:3,reps:10,weight:12},{name:"Lateral Raise",sets:3,reps:12,weight:6}
+        ]},
+        { id:"dumbbell-circuit", name:"Dumbbell Circuit", category:"Strength", emoji:"🏋️", description:"Four moves, steady pace, full-body effort.", duration:30, exercises:[
+          {name:"Dumbbell Goblet Squat",sets:3,reps:12,weight:16},{name:"Dumbbell Floor Press",sets:3,reps:10,weight:14},{name:"Dumbbell Romanian Deadlift",sets:3,reps:12,weight:18},{name:"Dumbbell Push Press",sets:3,reps:8,weight:10}
+        ]},
+        { id:"core-crusher", name:"Core Crusher", category:"HIIT", emoji:"🎯", description:"Build a stronger midsection with a no-equipment circuit.", duration:18, exercises:[
+          {name:"Dead Bug",sets:3,reps:10,weight:0},{name:"Bicycle Crunch",sets:3,reps:20,weight:0},{name:"Mountain Climbers",sets:3,reps:30,weight:0},{name:"Plank Shoulder Taps",sets:3,reps:20,weight:0}
+        ]},
+        { id:"bodyweight-burn", name:"Bodyweight Burn", category:"HIIT", emoji:"⚡", description:"A quick equipment-free challenge you can do anywhere.", duration:20, exercises:[
+          {name:"Reverse Lunges",sets:3,reps:12,weight:0},{name:"Push-ups",sets:3,reps:10,weight:0},{name:"Glute Bridges",sets:3,reps:15,weight:0},{name:"Squat Thrusts",sets:3,reps:10,weight:0}
+        ]},
+        { id:"5k-builder", name:"5K Builder", category:"Cardio", emoji:"🏁", description:"Build your running engine with controlled intervals.", duration:30, exercises:[
+          {name:"Easy Jog",sets:3,reps:5,weight:0},{name:"Brisk Run",sets:4,reps:3,weight:0},{name:"Recovery Walk",sets:3,reps:2,weight:0}
+        ]},
+        { id:"low-impact-cardio", name:"Low-Impact Cardio", category:"Cardio", emoji:"🚴", description:"Get moving with a joint-friendly cardio session.", duration:25, exercises:[
+          {name:"Stationary Bike",sets:3,reps:6,weight:0},{name:"Step Touches",sets:3,reps:40,weight:0},{name:"Standing Knee Drives",sets:3,reps:20,weight:0}
+        ]},
+        { id:"lower-power", name:"Lower Body Power", category:"Strength", emoji:"🦿", description:"Train your legs and glutes with a balanced strength session.", duration:40, exercises:[
+          {name:"Dumbbell Split Squat",sets:3,reps:10,weight:12},{name:"Hip Thrust",sets:3,reps:12,weight:30},{name:"Step-ups",sets:3,reps:10,weight:8},{name:"Standing Calf Raise",sets:3,reps:15,weight:0}
         ]}
       ];
       const freshState = () => ({ version:1, profile:{name:"Athlete"}, xp:0, streak:0, lastWorkoutDate:null, routines:[], logs:[], active:null });
@@ -433,7 +454,10 @@
         document.getElementById("homeStreak").textContent = currentStreak();
         document.getElementById("homeWorkouts").textContent = state.logs.length;
         document.getElementById("homeXpCard").innerHTML = xpCard();
-        document.getElementById("featuredRoutines").innerHTML = allRoutines().slice(0,4).map(routineCard).join("");
+        const routines = allRoutines();
+        const featuredIds = ["push","core-crusher","5k-builder","dumbbell-circuit"];
+        const featured = featuredIds.map(id => routines.find(routine => routine.id === id)).filter(Boolean);
+        document.getElementById("featuredRoutines").innerHTML = featured.map(routineCard).join("");
       }
       function renderLibrary() {
         const query = document.getElementById("routineSearch").value.trim().toLowerCase();
