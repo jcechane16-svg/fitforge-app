@@ -77,7 +77,10 @@
     .routine-card { padding:15px; min-height:168px; background:var(--surface); border:1px solid var(--line); border-radius:19px; display:flex; flex-direction:column; justify-content:space-between; }
     .routine-top { display:flex; justify-content:space-between; align-items:flex-start; }
     .routine-emoji { font-size:25px; }
+    .routine-tools { display:flex; align-items:center; gap:6px; }
     .routine-tag { color:var(--muted); background:var(--surface-2); border-radius:20px; padding:5px 8px; font-size:9px; font-weight:700; }
+    .favorite-btn { width:29px; height:29px; display:grid; place-items:center; border:1px solid var(--line); background:var(--surface-2); color:var(--muted); border-radius:10px; font-size:15px; padding:0; }
+    .favorite-btn.selected { color:var(--orange); border-color:rgba(255,152,91,.25); background:rgba(255,152,91,.1); }
     .routine-card h3 { margin:13px 0 5px; }
     .routine-card p { font-size:11px; }
     .routine-bottom { margin-top:12px; display:flex; align-items:center; justify-content:space-between; color:var(--muted); font-size:10px; }
@@ -255,6 +258,9 @@
           <button class="chip" data-category="Cardio">Cardio</button>
           <button class="chip" data-category="HIIT">HIIT</button>
           <button class="chip" data-category="Calisthenics">Calisthenics</button>
+          <button class="chip" data-category="Mobility">Mobility</button>
+          <button class="chip" data-category="Recovery">Recovery</button>
+          <button class="chip" data-category="Favorites">★ Saved</button>
           <button class="chip" data-category="Custom">Custom</button>
         </div>
         <div class="routine-grid" id="routineGrid"></div>
@@ -357,9 +363,21 @@
         ]},
         { id:"calisthenics-conditioning", name:"Calisthenics Conditioning", category:"Calisthenics", emoji:"🔥", description:"A simple bodyweight circuit to build stamina at your own pace.", duration:20, exercises:[
           {name:"Step-back Burpees",sets:3,reps:6,weight:0},{name:"Mountain Climbers",sets:3,reps:20,weight:0},{name:"Alternating Step-back Lunges",sets:3,reps:10,weight:0},{name:"Knee Push-ups",sets:3,reps:8,weight:0}
+        ]},
+        { id:"mobility-reset", name:"Daily Mobility Reset", category:"Mobility", emoji:"🌿", description:"Gentle, controlled movement to explore comfortable ranges of motion.", duration:12, exercises:[
+          {name:"Cat-Cow",sets:2,reps:8,weight:0},{name:"World's Greatest Stretch",sets:2,reps:5,weight:0},{name:"Thoracic Rotations",sets:2,reps:8,weight:0},{name:"Ankle Rocks",sets:2,reps:10,weight:0}
+        ]},
+        { id:"hips-and-ankles", name:"Hips & Ankles Flow", category:"Mobility", emoji:"🧘", description:"A low-intensity mobility flow for hips, ankles, and squat comfort.", duration:15, exercises:[
+          {name:"90/90 Hip Switches",sets:2,reps:8,weight:0},{name:"Knee-to-Wall Ankle Rocks",sets:2,reps:10,weight:0},{name:"World's Greatest Stretch",sets:2,reps:4,weight:0},{name:"Deep Squat Hold Breaths",sets:2,reps:5,weight:0}
+        ]},
+        { id:"recovery-flow", name:"Recovery Flow", category:"Recovery", emoji:"☁️", description:"An easy movement session for a lighter training day. Keep every rep comfortable.", duration:15, exercises:[
+          {name:"Easy Walk",sets:1,reps:10,weight:0},{name:"Shoulder Rolls",sets:2,reps:10,weight:0},{name:"Standing Hip Circles",sets:2,reps:8,weight:0},{name:"Box Breathing",sets:2,reps:5,weight:0}
+        ]},
+        { id:"post-workout-stretch", name:"Post-Workout Stretch", category:"Recovery", emoji:"🌙", description:"Finish a training day with a relaxed, unhurried cooldown.", duration:12, exercises:[
+          {name:"Chest Opener",sets:2,reps:5,weight:0},{name:"Standing Quad Stretch",sets:2,reps:5,weight:0},{name:"Hamstring Hinge",sets:2,reps:6,weight:0},{name:"Child's Pose Breaths",sets:2,reps:5,weight:0}
         ]}
       ];
-      const freshState = () => ({ version:1, profile:{name:"Athlete"}, xp:0, streak:0, lastWorkoutDate:null, routines:[], logs:[], active:null });
+      const freshState = () => ({ version:1, profile:{name:"Athlete"}, xp:0, streak:0, lastWorkoutDate:null, routines:[], favorites:[], logs:[], active:null });
       let state = loadState();
       let currentCategory = "All";
       let restInterval = null;
@@ -385,7 +403,7 @@
           if (!raw) return freshState();
           const parsed = JSON.parse(raw);
           if (!parsed || typeof parsed !== "object") throw new Error("Invalid saved data");
-          return { ...freshState(), ...parsed, profile:{...freshState().profile,...(parsed.profile || {})}, routines:Array.isArray(parsed.routines)?parsed.routines:[], logs:Array.isArray(parsed.logs)?parsed.logs:[] };
+          return { ...freshState(), ...parsed, profile:{...freshState().profile,...(parsed.profile || {})}, routines:Array.isArray(parsed.routines)?parsed.routines:[], favorites:Array.isArray(parsed.favorites)?parsed.favorites.filter(id=>typeof id==="string"):[], logs:Array.isArray(parsed.logs)?parsed.logs:[] };
         } catch (error) {
           console.error("Could not load FitForge data:", error);
           return freshState();
@@ -460,7 +478,8 @@
       }
       function routineCard(routine) {
         const sets = routine.exercises.reduce((sum, exercise) => sum + Number(exercise.sets || 0),0);
-        return `<article class="routine-card"><div><div class="routine-top"><span class="routine-emoji">${routine.emoji || "🏋️"}</span><span class="routine-tag">${safe(routine.category)}</span></div><h3>${safe(routine.name)}</h3><p>${safe(routine.description || `${routine.exercises.length} exercises to get moving.`)}</p></div><div class="routine-bottom"><span>${routine.duration || 30} min · ${sets} sets</span><button class="text-btn start-routine" data-routine="${safe(routine.id)}">Start →</button></div></article>`;
+        const favorite=state.favorites.includes(routine.id);
+        return `<article class="routine-card"><div><div class="routine-top"><span class="routine-emoji">${routine.emoji || "🏋️"}</span><div class="routine-tools"><span class="routine-tag">${safe(routine.category)}</span><button class="favorite-btn ${favorite?"selected":""}" data-favorite="${safe(routine.id)}" aria-label="${favorite?"Remove from":"Save to"} favorites" aria-pressed="${favorite}">${favorite?"★":"☆"}</button></div></div><h3>${safe(routine.name)}</h3><p>${safe(routine.description || `${routine.exercises.length} exercises to get moving.`)}</p></div><div class="routine-bottom"><span>${routine.duration || 30} min · ${sets} sets</span><button class="text-btn start-routine" data-routine="${safe(routine.id)}">Start →</button></div></article>`;
       }
       function renderHome() {
         document.getElementById("homeLevel").textContent = level();
@@ -468,13 +487,13 @@
         document.getElementById("homeWorkouts").textContent = state.logs.length;
         document.getElementById("homeXpCard").innerHTML = xpCard();
         const routines = allRoutines();
-        const featuredIds = ["push","calisthenics-foundations","5k-builder","dumbbell-circuit"];
+        const featuredIds = ["push","calisthenics-foundations","mobility-reset","recovery-flow"];
         const featured = featuredIds.map(id => routines.find(routine => routine.id === id)).filter(Boolean);
         document.getElementById("featuredRoutines").innerHTML = featured.map(routineCard).join("");
       }
       function renderLibrary() {
         const query = document.getElementById("routineSearch").value.trim().toLowerCase();
-        const routines = allRoutines().filter(r => (currentCategory === "All" || (currentCategory === "Custom" ? state.routines.some(c=>c.id===r.id) : r.category===currentCategory)) && `${r.name} ${r.description} ${r.category}`.toLowerCase().includes(query));
+        const routines = allRoutines().filter(r => (currentCategory === "All" || (currentCategory === "Custom" ? state.routines.some(c=>c.id===r.id) : currentCategory === "Favorites" ? state.favorites.includes(r.id) : r.category===currentCategory)) && `${r.name} ${r.description} ${r.category}`.toLowerCase().includes(query));
         document.getElementById("routineGrid").innerHTML = routines.length ? routines.map(routineCard).join("") : `<div class="empty" style="grid-column:1/-1"><div class="empty-icon">🔎</div><h3>No routines found</h3><p>Try another search or create a routine of your own.</p></div>`;
       }
       function renderActive() {
@@ -493,7 +512,23 @@
       }
       function renderDashboard() {
         const streak = currentStreak();
-        document.getElementById("dashboardContent").innerHTML = `${xpCard()}<div class="streak-card"><div class="streak-icon">🔥</div><div><strong>${streak} day${streak===1?"":"s"} strong</strong><p>Keep the momentum going. Show up today.</p></div><div class="streak-count">${streak}</div></div><div class="section-head"><h2>This week</h2></div>${renderWeeklyActivity()}<div class="section-head"><h2>Achievements</h2></div><div class="list-card">${achievementRow("⚡","First steps","Complete your first workout",state.logs.length>=1)}${achievementRow("💪","Set in stone","Complete 25 sets",state.logs.reduce((n,l)=>n+(l.sets||0),0)>=25)}${achievementRow("🔥","On fire","Reach a 3-day streak",streak>=3)}${achievementRow("🏆","Forged legend","Reach level 5",level()>=5)}</div><div class="section-head"><h2>Training stats</h2></div><div class="stats-grid"><div class="stat-card"><span class="stat-icon">🏋️</span><div class="stat-value">${state.logs.length}</div><div class="stat-label">Workouts</div></div><div class="stat-card"><span class="stat-icon">✅</span><div class="stat-value">${state.logs.reduce((n,l)=>n+(l.sets||0),0)}</div><div class="stat-label">Sets completed</div></div><div class="stat-card"><span class="stat-icon">✨</span><div class="stat-value">${state.xp}</div><div class="stat-label">Total XP</div></div></div>`;
+        document.getElementById("dashboardContent").innerHTML = `${xpCard()}<div class="streak-card"><div class="streak-icon">🔥</div><div><strong>${streak} day${streak===1?"":"s"} strong</strong><p>Keep the momentum going. Show up today.</p></div><div class="streak-count">${streak}</div></div><div class="section-head"><h2>This week</h2></div>${renderWeeklyActivity()}<div class="section-head"><h2>Personal records</h2></div>${renderPersonalRecords()}<div class="section-head"><h2>Achievements</h2></div><div class="list-card">${achievementRow("⚡","First steps","Complete your first workout",state.logs.length>=1)}${achievementRow("💪","Set in stone","Complete 25 sets",state.logs.reduce((n,l)=>n+(l.sets||0),0)>=25)}${achievementRow("🔥","On fire","Reach a 3-day streak",streak>=3)}${achievementRow("🏆","Forged legend","Reach level 5",level()>=5)}</div><div class="section-head"><h2>Training stats</h2></div><div class="stats-grid"><div class="stat-card"><span class="stat-icon">🏋️</span><div class="stat-value">${state.logs.length}</div><div class="stat-label">Workouts</div></div><div class="stat-card"><span class="stat-icon">✅</span><div class="stat-value">${state.logs.reduce((n,l)=>n+(l.sets||0),0)}</div><div class="stat-label">Sets completed</div></div><div class="stat-card"><span class="stat-icon">✨</span><div class="stat-value">${state.xp}</div><div class="stat-label">Total XP</div></div></div>`;
+      }
+      function renderPersonalRecords() {
+        const bests=new Map();
+        for(const log of state.logs) {
+          if(!Array.isArray(log.exerciseDetails)) continue;
+          for(const exercise of log.exerciseDetails) {
+            if(!exercise || typeof exercise.name!=="string") continue;
+            const weight=Number(exercise.weight);
+            if(!Number.isFinite(weight) || weight<=0) continue;
+            const current=bests.get(exercise.name);
+            if(!current || weight>current.weight) bests.set(exercise.name,{weight,date:log.date});
+          }
+        }
+        const records=[...bests.entries()].sort((a,b)=>b[1].weight-a[1].weight).slice(0,3);
+        if(!records.length) return `<div class="empty"><div class="empty-icon">🏅</div><h3>Your first record is waiting</h3><p>Log a weighted exercise in a completed session to see your best loads here.</p></div>`;
+        return `<div class="list-card">${records.map(([name,record])=>`<div class="list-row"><div class="exercise-icon">🏅</div><div class="row-main"><strong>${safe(name)}</strong><span>Best logged load · ${formatDate(record.date)}</span></div><div class="log-xp">${record.weight} kg</div></div>`).join("")}</div>`;
       }
       function renderWeeklyActivity() {
         const dates = Array.from({length:7}, (_, index) => shiftDate(today(), index - 6));
@@ -603,7 +638,7 @@
       }
       function renumberExercises(){document.querySelectorAll(".form-exercise-head span").forEach((el,i)=>el.textContent=`Exercise ${i+1}`);}
       function showCreateRoutine() {
-        openModal(`<div class="modal-head"><h2 id="modalTitle">Create a routine</h2><button class="close-btn" data-close aria-label="Close">×</button></div><form id="routineForm"><div class="field"><label for="routineName">Routine name</label><input id="routineName" name="routineName" placeholder="e.g. Saturday strength" required maxlength="50"></div><div class="field"><label for="routineCategory">Category</label><select id="routineCategory" name="category"><option>Strength</option><option>Cardio</option><option>HIIT</option></select></div><div class="field"><label for="routineDescription">Short description</label><input id="routineDescription" name="description" placeholder="What are we working on?" maxlength="100"></div><div class="section-head" style="margin:18px 0 11px"><h3>Exercises</h3><button type="button" class="text-btn" id="addExercise">＋ Add exercise</button></div><div id="exerciseForms"></div><button class="btn btn-primary btn-block" type="submit">Save routine</button></form>`);
+        openModal(`<div class="modal-head"><h2 id="modalTitle">Create a routine</h2><button class="close-btn" data-close aria-label="Close">×</button></div><form id="routineForm"><div class="field"><label for="routineName">Routine name</label><input id="routineName" name="routineName" placeholder="e.g. Saturday strength" required maxlength="50"></div><div class="field"><label for="routineCategory">Category</label><select id="routineCategory" name="category"><option>Strength</option><option>Cardio</option><option>HIIT</option><option>Calisthenics</option><option>Mobility</option><option>Recovery</option></select></div><div class="field"><label for="routineDescription">Short description</label><input id="routineDescription" name="description" placeholder="What are we working on?" maxlength="100"></div><div class="section-head" style="margin:18px 0 11px"><h3>Exercises</h3><button type="button" class="text-btn" id="addExercise">＋ Add exercise</button></div><div id="exerciseForms"></div><button class="btn btn-primary btn-block" type="submit">Save routine</button></form>`);
         addExerciseForm();
         document.getElementById("addExercise").addEventListener("click",addExerciseForm);
         document.getElementById("routineForm").addEventListener("submit",event=>{
@@ -648,7 +683,7 @@
           const imported=JSON.parse(await file.text());
           if(!validImport(imported)) throw new Error("The file does not look like a valid FitForge backup.");
           openModal(`<div class="modal-head"><h2 id="modalTitle">Import backup?</h2><button class="close-btn" data-close>×</button></div><p style="font-size:13px;margin-bottom:18px">This replaces the progress, history and custom routines currently saved on this device.</p><div class="modal-actions"><button class="btn btn-secondary" data-close>Cancel</button><button class="btn btn-primary" id="confirmImport">Replace data</button></div>`);
-          document.getElementById("confirmImport").addEventListener("click",()=>{state={...freshState(),...imported,profile:{...freshState().profile,...(imported.profile||{})},active:null};saveState();closeModal();renderAll();document.getElementById("avatar").textContent=(state.profile.name||"A")[0].toUpperCase();toast("Backup imported successfully.");});
+          document.getElementById("confirmImport").addEventListener("click",()=>{state={...freshState(),...imported,profile:{...freshState().profile,...(imported.profile||{})},favorites:Array.isArray(imported.favorites)?imported.favorites.filter(id=>typeof id==="string"):[],active:null};saveState();closeModal();renderAll();document.getElementById("avatar").textContent=(state.profile.name||"A")[0].toUpperCase();toast("Backup imported successfully.");});
         } catch(error) { console.error("Could not import FitForge data:",error);toast(error instanceof SyntaxError?"That file is not valid JSON.":error.message||"Could not import this backup."); }
         finally { event.target.value=""; }
       });
@@ -673,6 +708,12 @@
         if(target.dataset.go){closeModal();switchView(target.dataset.go);return;}
         if(target.hasAttribute("data-close")){clearInterval(restInterval);closeModal();return;}
         if(target.classList.contains("start-routine")){startRoutine(target.dataset.routine);return;}
+        if(target.dataset.favorite){
+          const index=state.favorites.indexOf(target.dataset.favorite);
+          if(index===-1){state.favorites.push(target.dataset.favorite);toast("Routine saved to favorites.");}
+          else{state.favorites.splice(index,1);toast("Routine removed from favorites.");}
+          saveState();renderHome();renderLibrary();return;
+        }
         if(target.dataset.category){currentCategory=target.dataset.category;document.querySelectorAll("#categoryTabs .chip").forEach(chip=>chip.classList.toggle("selected",chip===target));renderLibrary();return;}
         if(target.dataset.rest){restRemaining=Number(target.dataset.rest);restEndsAt=Date.now()+restRemaining*1000;document.querySelectorAll("[data-rest]").forEach(chip=>chip.classList.toggle("selected",chip===target));const display=document.getElementById("timerDisplay");if(display)display.textContent=`${String(Math.floor(restRemaining/60)).padStart(2,"0")}:${String(restRemaining%60).padStart(2,"0")}`;return;}
         if(target.id==="timerDone"){clearInterval(restInterval);closeModal();return;}
