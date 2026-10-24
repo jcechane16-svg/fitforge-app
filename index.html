@@ -188,6 +188,24 @@
     .settings-list { display:grid; gap:9px; }
     .settings-list .btn { justify-content:flex-start; }
     .settings-list .btn:disabled { opacity:.55; cursor:not-allowed; }
+    .settings-section { margin:3px 0 13px; }
+    .settings-section h3 { font-size:13px; margin-bottom:4px; }
+    .settings-section p { font-size:10px; }
+    .settings-toggle { display:flex; justify-content:space-between; align-items:center; gap:12px; padding:11px 12px; border:1px solid var(--line); border-radius:12px; background:var(--surface-2); }
+    .settings-toggle strong { display:block; font-size:11px; }
+    .settings-toggle span { display:block; color:var(--muted); font-size:9px; margin-top:3px; }
+    .settings-toggle input { appearance:none; width:42px; height:24px; flex:none; margin:0; border:1px solid var(--line); border-radius:20px; background:var(--surface-3); transition:background .18s; }
+    .settings-toggle input::before { content:""; display:block; width:16px; height:16px; margin:3px; border-radius:50%; background:var(--muted); transition:transform .18s,background .18s; }
+    .settings-toggle input:checked { background:rgba(196,243,107,.28); border-color:rgba(196,243,107,.4); }
+    .settings-toggle input:checked::before { transform:translateX(18px); background:var(--green); }
+    .settings-toggle-actions { display:flex; align-items:center; gap:10px; }
+    .settings-toggle-actions .btn { min-height:34px; padding:0 10px; font-size:10px; }
+    .goal-card { margin-top:11px; padding:16px; border:1px solid var(--line); border-radius:18px; background:var(--surface); }
+    .goal-card-head { display:flex; align-items:center; justify-content:space-between; gap:12px; }
+    .goal-card-head strong { font-size:12px; }
+    .goal-card-head span { color:var(--green); font-size:11px; font-weight:800; }
+    .goal-card p { font-size:10px; margin-top:4px; }
+    .goal-card .progress-track { margin-top:12px; }
     .install-status { margin:7px 2px 3px; color:var(--muted); font-size:10px; line-height:1.5; }
     .file-input { display:none; }
     .footer-note { color:#62685d; font-size:9px; text-align:center; margin:20px 0 5px; }
@@ -377,7 +395,18 @@
           {name:"Chest Opener",sets:2,reps:5,weight:0},{name:"Standing Quad Stretch",sets:2,reps:5,weight:0},{name:"Hamstring Hinge",sets:2,reps:6,weight:0},{name:"Child's Pose Breaths",sets:2,reps:5,weight:0}
         ]}
       ];
-      const freshState = () => ({ version:1, profile:{name:"Athlete"}, xp:0, streak:0, lastWorkoutDate:null, routines:[], favorites:[], logs:[], active:null });
+      const freshSettings = () => ({weightUnit:"kg",restSeconds:60,weeklyGoal:4,haptics:true});
+      const normalizeSettings = settings => {
+        const defaults=freshSettings();
+        if(!settings || typeof settings!=="object" || Array.isArray(settings)) return defaults;
+        return {
+          weightUnit:settings.weightUnit==="lb"?"lb":"kg",
+          restSeconds:[30,45,60,90,120].includes(settings.restSeconds)?settings.restSeconds:defaults.restSeconds,
+          weeklyGoal:[2,3,4,5,6].includes(settings.weeklyGoal)?settings.weeklyGoal:defaults.weeklyGoal,
+          haptics:typeof settings.haptics==="boolean"?settings.haptics:defaults.haptics
+        };
+      };
+      const freshState = () => ({ version:1, profile:{name:"Athlete"}, settings:freshSettings(), xp:0, streak:0, lastWorkoutDate:null, routines:[], favorites:[], logs:[], active:null });
       let state = loadState();
       let currentCategory = "All";
       let restInterval = null;
@@ -403,7 +432,7 @@
           if (!raw) return freshState();
           const parsed = JSON.parse(raw);
           if (!parsed || typeof parsed !== "object") throw new Error("Invalid saved data");
-          return { ...freshState(), ...parsed, profile:{...freshState().profile,...(parsed.profile || {})}, routines:Array.isArray(parsed.routines)?parsed.routines:[], favorites:Array.isArray(parsed.favorites)?parsed.favorites.filter(id=>typeof id==="string"):[], logs:Array.isArray(parsed.logs)?parsed.logs:[] };
+          return { ...freshState(), ...parsed, profile:{...freshState().profile,...(parsed.profile || {})}, settings:normalizeSettings(parsed.settings), routines:Array.isArray(parsed.routines)?parsed.routines:[], favorites:Array.isArray(parsed.favorites)?parsed.favorites.filter(id=>typeof id==="string"):[], logs:Array.isArray(parsed.logs)?parsed.logs:[] };
         } catch (error) {
           console.error("Could not load FitForge data:", error);
           return freshState();
@@ -419,7 +448,23 @@
       const levelXp = () => state.xp % 100;
       const currentStreak = () => state.lastWorkoutDate && state.lastWorkoutDate < shiftDate(today(), -1) ? 0 : state.streak;
       const formatDate = value => new Date(`${value}T12:00:00`).toLocaleDateString(undefined,{weekday:"short",month:"short",day:"numeric"});
+      const weightUnit = () => state.settings.weightUnit;
+      const weightForDisplay = weight => Number((Number(weight||0)*(weightUnit()==="lb"?2.2046226218:1)).toFixed(1));
+      const weightToKg = weight => Number((Number(weight||0)/(weightUnit()==="lb"?2.2046226218:1)).toFixed(2));
+      const workoutsInLastSevenDays = () => {
+        const start=shiftDate(today(),-6);
+        return state.logs.filter(log=>typeof log.date==="string" && log.date>=start && log.date<=today()).length;
+      };
       const safe = value => String(value).replace(/[&<>"']/g, char => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[char]));
+      function triggerHaptic(pattern=[180,80,180]) {
+        if(!state.settings.haptics) return;
+        if(typeof navigator.vibrate!=="function") return;
+        try {
+          if(!navigator.vibrate(pattern)) console.warn("FitForge vibration cue is unavailable on this device.");
+        } catch(error) {
+          console.warn("FitForge vibration cue is unavailable:",error);
+        }
+      }
 
       function toast(message) {
         const el = document.getElementById("toast");
@@ -506,13 +551,13 @@
         const total = active.exercises.reduce((n,e)=>n+e.sets,0);
         const completed = active.exercises.reduce((n,e)=>n+e.done.filter(Boolean).length,0);
         host.innerHTML = `<div class="workout-head"><div class="workout-head-top"><div><div class="eyebrow">SESSION IN PROGRESS</div><h2>${safe(active.name)}</h2><p>${completed} of ${total} sets complete · ${active.startedAt ? "Started "+new Date(active.startedAt).toLocaleTimeString([], {hour:"2-digit",minute:"2-digit"}) : ""}</p></div><span class="timer-pill">⚡ +10 XP / set</span></div><div class="progress-track"><div class="progress-fill" style="width:${total?completed/total*100:0}%"></div></div></div>
-          ${active.exercises.map((exercise,ei)=>`<div class="exercise-block"><div class="exercise-block-head"><div><strong>${safe(exercise.name)}</strong><div class="exercise-target">${exercise.reps} target reps per set</div></div><span class="routine-tag">${exercise.done.filter(Boolean).length}/${exercise.sets} sets</span></div><label class="exercise-load">Weight per set <input type="number" min="0" max="1000" step="0.5" required value="${Number(exercise.weight)||0}" data-weight-exercise="${ei}" aria-label="Weight in kilograms for ${safe(exercise.name)}"> kg</label><div class="set-list">${exercise.done.map((done,si)=>`<label class="set-check"><input class="set-checkbox" type="checkbox" data-exercise="${ei}" data-set="${si}" ${done?"checked disabled":""} aria-label="Complete set ${si+1} of ${safe(exercise.name)}"><span>Set ${si+1}</span></label>`).join("")}</div></div>`).join("")}
+          ${active.exercises.map((exercise,ei)=>`<div class="exercise-block"><div class="exercise-block-head"><div><strong>${safe(exercise.name)}</strong><div class="exercise-target">${exercise.reps} target reps per set</div></div><span class="routine-tag">${exercise.done.filter(Boolean).length}/${exercise.sets} sets</span></div><label class="exercise-load">Weight per set <input type="number" min="0" max="${weightUnit()==="lb"?"2204.6":"1000"}" step="${weightUnit()==="lb"?"0.1":"0.5"}" required value="${weightForDisplay(exercise.weight)}" data-weight-exercise="${ei}" aria-label="Weight in ${weightUnit()} for ${safe(exercise.name)}"> ${weightUnit()}</label><div class="set-list">${exercise.done.map((done,si)=>`<label class="set-check"><input class="set-checkbox" type="checkbox" data-exercise="${ei}" data-set="${si}" ${done?"checked disabled":""} aria-label="Complete set ${si+1} of ${safe(exercise.name)}"><span>Set ${si+1}</span></label>`).join("")}</div></div>`).join("")}
           <button class="btn btn-primary btn-block" id="finishWorkout" ${completed<total?"disabled":""}>${completed<total?"Complete all sets to finish":"Finish workout · +100 XP"}</button>
           <button class="btn btn-quiet btn-block" style="margin-top:9px" id="discardWorkout">Abandon session</button>`;
       }
       function renderDashboard() {
         const streak = currentStreak();
-        document.getElementById("dashboardContent").innerHTML = `${xpCard()}<div class="streak-card"><div class="streak-icon">🔥</div><div><strong>${streak} day${streak===1?"":"s"} strong</strong><p>Keep the momentum going. Show up today.</p></div><div class="streak-count">${streak}</div></div><div class="section-head"><h2>This week</h2></div>${renderWeeklyActivity()}<div class="section-head"><h2>Personal records</h2></div>${renderPersonalRecords()}<div class="section-head"><h2>Achievements</h2></div><div class="list-card">${achievementRow("⚡","First steps","Complete your first workout",state.logs.length>=1)}${achievementRow("💪","Set in stone","Complete 25 sets",state.logs.reduce((n,l)=>n+(l.sets||0),0)>=25)}${achievementRow("🔥","On fire","Reach a 3-day streak",streak>=3)}${achievementRow("🏆","Forged legend","Reach level 5",level()>=5)}</div><div class="section-head"><h2>Training stats</h2></div><div class="stats-grid"><div class="stat-card"><span class="stat-icon">🏋️</span><div class="stat-value">${state.logs.length}</div><div class="stat-label">Workouts</div></div><div class="stat-card"><span class="stat-icon">✅</span><div class="stat-value">${state.logs.reduce((n,l)=>n+(l.sets||0),0)}</div><div class="stat-label">Sets completed</div></div><div class="stat-card"><span class="stat-icon">✨</span><div class="stat-value">${state.xp}</div><div class="stat-label">Total XP</div></div></div>`;
+        document.getElementById("dashboardContent").innerHTML = `${xpCard()}<div class="streak-card"><div class="streak-icon">🔥</div><div><strong>${streak} day${streak===1?"":"s"} strong</strong><p>Keep the momentum going. Show up today.</p></div><div class="streak-count">${streak}</div></div><div class="section-head"><h2>This week</h2></div>${renderWeeklyActivity()}${renderWeeklyGoal()}<div class="section-head"><h2>Personal records</h2></div>${renderPersonalRecords()}<div class="section-head"><h2>Achievements</h2></div><div class="list-card">${achievementRow("⚡","First steps","Complete your first workout",state.logs.length>=1)}${achievementRow("💪","Set in stone","Complete 25 sets",state.logs.reduce((n,l)=>n+(l.sets||0),0)>=25)}${achievementRow("🔥","On fire","Reach a 3-day streak",streak>=3)}${achievementRow("🏆","Forged legend","Reach level 5",level()>=5)}</div><div class="section-head"><h2>Training stats</h2></div><div class="stats-grid"><div class="stat-card"><span class="stat-icon">🏋️</span><div class="stat-value">${state.logs.length}</div><div class="stat-label">Workouts</div></div><div class="stat-card"><span class="stat-icon">✅</span><div class="stat-value">${state.logs.reduce((n,l)=>n+(l.sets||0),0)}</div><div class="stat-label">Sets completed</div></div><div class="stat-card"><span class="stat-icon">✨</span><div class="stat-value">${state.xp}</div><div class="stat-label">Total XP</div></div></div>`;
       }
       function renderPersonalRecords() {
         const bests=new Map();
@@ -528,7 +573,7 @@
         }
         const records=[...bests.entries()].sort((a,b)=>b[1].weight-a[1].weight).slice(0,3);
         if(!records.length) return `<div class="empty"><div class="empty-icon">🏅</div><h3>Your first record is waiting</h3><p>Log a weighted exercise in a completed session to see your best loads here.</p></div>`;
-        return `<div class="list-card">${records.map(([name,record])=>`<div class="list-row"><div class="exercise-icon">🏅</div><div class="row-main"><strong>${safe(name)}</strong><span>Best logged load · ${formatDate(record.date)}</span></div><div class="log-xp">${record.weight} kg</div></div>`).join("")}</div>`;
+        return `<div class="list-card">${records.map(([name,record])=>`<div class="list-row"><div class="exercise-icon">🏅</div><div class="row-main"><strong>${safe(name)}</strong><span>Best logged load · ${formatDate(record.date)}</span></div><div class="log-xp">${weightForDisplay(record.weight)} ${weightUnit()}</div></div>`).join("")}</div>`;
       }
       function renderWeeklyActivity() {
         const dates = Array.from({length:7}, (_, index) => shiftDate(today(), index - 6));
@@ -541,6 +586,13 @@
           return `<div class="week-day ${date === today() ? "today" : ""}" title="${formatDate(date)}: ${count} workout${count === 1 ? "" : "s"}"><div class="week-bar-track"><div class="week-bar ${count ? "has-workout" : ""}" style="height:${height}%"></div></div><span class="week-day-label">${label}</span></div>`;
         }).join("");
         return `<div class="week-card"><div class="week-card-head"><div><h3>Last 7 days</h3><p>Every session moves you forward.</p></div><div class="week-total">${total}<span style="font-size:10px;color:var(--muted);font-weight:650"> workout${total === 1 ? "" : "s"}</span></div></div><div class="week-chart" aria-label="${total} workout${total === 1 ? "" : "s"} in the last 7 days">${bars}</div></div>`;
+      }
+      function renderWeeklyGoal() {
+        const completed=workoutsInLastSevenDays();
+        const goal=state.settings.weeklyGoal;
+        const progress=Math.min(100,completed/goal*100);
+        const achieved=completed>=goal;
+        return `<div class="goal-card"><div class="goal-card-head"><strong>🎯 Weekly workout goal</strong><span>${completed} / ${goal}</span></div><p>${achieved?"Goal reached — fantastic consistency!":`${goal-completed} more workout${goal-completed===1?"":"s"} to hit your ${goal}-session goal.`}</p><div class="progress-track" role="progressbar" aria-label="Weekly workout goal progress" aria-valuemin="0" aria-valuemax="${goal}" aria-valuenow="${Math.min(completed,goal)}"><div class="progress-fill" style="width:${progress}%"></div></div></div>`;
       }
       function achievementRow(icon,title,desc,unlocked) {
         return `<div class="list-row"><div class="exercise-icon" style="${unlocked?"background:rgba(196,243,107,.12)":""}">${icon}</div><div class="row-main"><strong>${title}</strong><span>${desc}</span></div><span class="row-end" style="${unlocked?"color:var(--green)":""}">${unlocked?"✓ Unlocked":"🔒"}</span></div>`;
@@ -587,9 +639,10 @@
       }
       function showRestTimer() {
         clearInterval(restInterval);
-        restRemaining=60;
+        restRemaining=state.settings.restSeconds;
         restEndsAt=Date.now()+restRemaining*1000;
-        openModal(`<div class="modal-head"><h2>Set complete</h2><button class="close-btn" data-close>×</button></div><p class="timer-caption" id="timerCaption">Take a breath. You've earned your rest.</p><div class="timer-display" id="timerDisplay">01:00</div><div class="rest-presets"><button class="chip" data-rest="30">30 sec</button><button class="chip selected" data-rest="60">60 sec</button><button class="chip" data-rest="90">90 sec</button></div><div class="modal-actions"><button class="btn btn-secondary" data-close>Skip rest</button><button class="btn btn-primary" id="timerDone">Let's go</button></div>`);
+        const timerLabel=`${String(Math.floor(restRemaining/60)).padStart(2,"0")}:${String(restRemaining%60).padStart(2,"0")}`;
+        openModal(`<div class="modal-head"><h2>Set complete</h2><button class="close-btn" data-close>×</button></div><p class="timer-caption" id="timerCaption">Take a breath. You've earned your rest.</p><div class="timer-display" id="timerDisplay">${timerLabel}</div><div class="rest-presets">${[30,45,60,90,120].map(seconds=>`<button class="chip ${seconds===restRemaining?"selected":""}" data-rest="${seconds}">${seconds} sec</button>`).join("")}</div><div class="modal-actions"><button class="btn btn-secondary" data-close>Skip rest</button><button class="btn btn-primary" id="timerDone">Let's go</button></div>`);
         restInterval=setInterval(()=>{
           const display=document.getElementById("timerDisplay");
           if(!display){clearInterval(restInterval);return;}
@@ -601,10 +654,7 @@
             document.getElementById("timerCaption").textContent="Rest complete. You're ready for the next set.";
             document.getElementById("timerDone").textContent="Back to workout";
             document.querySelectorAll("[data-rest]").forEach(button=>button.disabled=true);
-            if("vibrate" in navigator) {
-              try { navigator.vibrate([180,80,180]); }
-              catch(error) { console.warn("Rest timer haptic cue is unavailable:",error); }
-            }
+            triggerHaptic();
             toast("Rest complete — back to it!");
           }
         },1000);
@@ -632,7 +682,7 @@
         const count=host.children.length+1;
         const card=document.createElement("div");
         card.className="exercise-form";
-        card.innerHTML=`<div class="form-exercise-head"><span>Exercise ${count}</span><button type="button" class="remove-exercise">Remove</button></div><div class="field"><label>Exercise name</label><input name="exerciseName" placeholder="e.g. Dumbbell shoulder press" required maxlength="60"></div><div class="field-grid"><div class="field"><label>Sets</label><input name="sets" type="number" min="1" max="20" value="3" required></div><div class="field"><label>Target reps</label><input name="reps" type="number" min="1" max="200" value="10" required></div><div class="field"><label>Weight (kg)</label><input name="weight" type="number" min="0" max="1000" step="0.5" value="0" required></div></div>`;
+        card.innerHTML=`<div class="form-exercise-head"><span>Exercise ${count}</span><button type="button" class="remove-exercise">Remove</button></div><div class="field"><label>Exercise name</label><input name="exerciseName" placeholder="e.g. Dumbbell shoulder press" required maxlength="60"></div><div class="field-grid"><div class="field"><label>Sets</label><input name="sets" type="number" min="1" max="20" value="3" required></div><div class="field"><label>Target reps</label><input name="reps" type="number" min="1" max="200" value="10" required></div><div class="field"><label>Weight (${weightUnit()})</label><input name="weight" type="number" min="0" max="${weightUnit()==="lb"?"2204.6":"1000"}" step="${weightUnit()==="lb"?"0.1":"0.5"}" value="0" required></div></div>`;
         host.append(card);
         card.querySelector(".remove-exercise").addEventListener("click",()=>{ if(host.children.length<=1){toast("Add at least one exercise.");return;} card.remove(); renumberExercises(); });
       }
@@ -648,7 +698,7 @@
             name:card.querySelector('[name="exerciseName"]').value.trim(),
             sets:Number(card.querySelector('[name="sets"]').value),
             reps:Number(card.querySelector('[name="reps"]').value),
-            weight:Number(card.querySelector('[name="weight"]').value)
+            weight:weightToKg(Number(card.querySelector('[name="weight"]').value))
           }));
           if(!form.reportValidity() || !exercises.length || exercises.some(e=>!e.name || e.sets<1 || e.reps<1 || e.weight<0)){toast("Check your routine details and try again.");return;}
           const name=form.elements.routineName.value.trim();
@@ -657,10 +707,15 @@
         });
       }
       function showSettings() {
-        openModal(`<div class="modal-head"><h2 id="modalTitle">Settings & data</h2><button class="close-btn" data-close aria-label="Close">×</button></div><div class="field"><label for="profileName">Your display name</label><input id="profileName" maxlength="30" value="${safe(state.profile.name || "Athlete")}"></div><div class="settings-list"><div><button class="btn btn-secondary btn-block" id="installAppButton" type="button">📲 Install FitForge App</button><p class="install-status" id="installAppStatus" aria-live="polite"></p></div><button class="btn btn-secondary btn-block" id="exportButton">⇩ &nbsp; Export workout data (.json)</button><button class="btn btn-secondary btn-block" id="importButton">⇧ &nbsp; Import workout data (.json)</button><button class="btn btn-danger btn-block" id="clearDataButton">⌫ &nbsp; Clear all app data</button></div><p style="font-size:10px;margin-top:14px">Data is stored locally in this browser. Export a backup before clearing or changing devices.</p>`);
+        openModal(`<div class="modal-head"><h2 id="modalTitle">Settings & data</h2><button class="close-btn" data-close aria-label="Close">×</button></div><div class="field"><label for="profileName">Your display name</label><input id="profileName" maxlength="30" value="${safe(state.profile.name || "Athlete")}"></div><div class="settings-section"><h3>Training preferences</h3><p>Make FitForge work the way you train.</p></div><div class="field"><label for="weightUnitSetting">Weight units</label><select id="weightUnitSetting"><option value="kg" ${weightUnit()==="kg"?"selected":""}>Kilograms (kg)</option><option value="lb" ${weightUnit()==="lb"?"selected":""}>Pounds (lb)</option></select></div><div class="field"><label for="restDurationSetting">Default rest timer</label><select id="restDurationSetting">${[30,45,60,90,120].map(seconds=>`<option value="${seconds}" ${state.settings.restSeconds===seconds?"selected":""}>${seconds} seconds</option>`).join("")}</select></div><div class="field"><label for="weeklyGoalSetting">Weekly workout goal</label><select id="weeklyGoalSetting">${[2,3,4,5,6].map(goal=>`<option value="${goal}" ${state.settings.weeklyGoal===goal?"selected":""}>${goal} workouts per 7 days</option>`).join("")}</select></div><div class="settings-toggle"><label for="hapticsSetting"><strong>Rest timer vibration</strong><span>Vibrate when your rest is over.</span></label><div class="settings-toggle-actions"><button class="btn btn-quiet" id="testHapticsButton" type="button" ${state.settings.haptics?"":"disabled"}>Test</button><input type="checkbox" id="hapticsSetting" role="switch" aria-label="Enable rest timer vibration" ${state.settings.haptics?"checked":""}></div></div><div class="settings-section" style="margin-top:20px"><h3>App & data</h3><p>Install FitForge or manage your saved progress.</p></div><div class="settings-list"><div><button class="btn btn-secondary btn-block" id="installAppButton" type="button">📲 Install FitForge App</button><p class="install-status" id="installAppStatus" aria-live="polite"></p></div><button class="btn btn-secondary btn-block" id="exportButton">⇩ &nbsp; Export workout data (.json)</button><button class="btn btn-secondary btn-block" id="importButton">⇧ &nbsp; Import workout data (.json)</button><button class="btn btn-danger btn-block" id="clearDataButton">⌫ &nbsp; Clear all app data</button></div><p style="font-size:10px;margin-top:14px">Data is stored locally in this browser. Export a backup before clearing or changing devices.</p>`);
         updateInstallControl();
         document.getElementById("installAppButton").addEventListener("click", installApp);
         document.getElementById("profileName").addEventListener("change",event=>{state.profile.name=event.target.value.trim()||"Athlete";saveState();renderAll();document.getElementById("avatar").textContent=state.profile.name[0].toUpperCase();});
+        document.getElementById("weightUnitSetting").addEventListener("change",event=>{state.settings.weightUnit=event.target.value==="lb"?"lb":"kg";saveState();renderAll();toast(`Weights now shown in ${weightUnit()}.`);});
+        document.getElementById("restDurationSetting").addEventListener("change",event=>{state.settings.restSeconds=Number(event.target.value);saveState();});
+        document.getElementById("weeklyGoalSetting").addEventListener("change",event=>{state.settings.weeklyGoal=Number(event.target.value);saveState();renderDashboard();});
+        document.getElementById("hapticsSetting").addEventListener("change",event=>{state.settings.haptics=event.target.checked;saveState();document.getElementById("testHapticsButton").disabled=!state.settings.haptics;});
+        document.getElementById("testHapticsButton").addEventListener("click",()=>{if(typeof navigator.vibrate!=="function"){toast("Vibration is not supported on this device.");return;}triggerHaptic([80,40,80]);});
         document.getElementById("exportButton").addEventListener("click",exportData);
         document.getElementById("importButton").addEventListener("click",()=>document.getElementById("importFile").click());
         document.getElementById("clearDataButton").addEventListener("click",()=>{
@@ -683,7 +738,7 @@
           const imported=JSON.parse(await file.text());
           if(!validImport(imported)) throw new Error("The file does not look like a valid FitForge backup.");
           openModal(`<div class="modal-head"><h2 id="modalTitle">Import backup?</h2><button class="close-btn" data-close>×</button></div><p style="font-size:13px;margin-bottom:18px">This replaces the progress, history and custom routines currently saved on this device.</p><div class="modal-actions"><button class="btn btn-secondary" data-close>Cancel</button><button class="btn btn-primary" id="confirmImport">Replace data</button></div>`);
-          document.getElementById("confirmImport").addEventListener("click",()=>{state={...freshState(),...imported,profile:{...freshState().profile,...(imported.profile||{})},favorites:Array.isArray(imported.favorites)?imported.favorites.filter(id=>typeof id==="string"):[],active:null};saveState();closeModal();renderAll();document.getElementById("avatar").textContent=(state.profile.name||"A")[0].toUpperCase();toast("Backup imported successfully.");});
+          document.getElementById("confirmImport").addEventListener("click",()=>{state={...freshState(),...imported,profile:{...freshState().profile,...(imported.profile||{})},settings:normalizeSettings(imported.settings),favorites:Array.isArray(imported.favorites)?imported.favorites.filter(id=>typeof id==="string"):[],active:null};saveState();closeModal();renderAll();document.getElementById("avatar").textContent=(state.profile.name||"A")[0].toUpperCase();toast("Backup imported successfully.");});
         } catch(error) { console.error("Could not import FitForge data:",error);toast(error instanceof SyntaxError?"That file is not valid JSON.":error.message||"Could not import this backup."); }
         finally { event.target.value=""; }
       });
@@ -697,7 +752,7 @@
           if(!target.reportValidity()) return;
           const exercise=state.active?.exercises[Number(target.dataset.weightExercise)];
           if(!exercise) return;
-          exercise.weight=Number(target.value);
+          exercise.weight=weightToKg(Number(target.value));
           saveState();
         }
       });
@@ -715,7 +770,7 @@
           saveState();renderHome();renderLibrary();return;
         }
         if(target.dataset.category){currentCategory=target.dataset.category;document.querySelectorAll("#categoryTabs .chip").forEach(chip=>chip.classList.toggle("selected",chip===target));renderLibrary();return;}
-        if(target.dataset.rest){restRemaining=Number(target.dataset.rest);restEndsAt=Date.now()+restRemaining*1000;document.querySelectorAll("[data-rest]").forEach(chip=>chip.classList.toggle("selected",chip===target));const display=document.getElementById("timerDisplay");if(display)display.textContent=`${String(Math.floor(restRemaining/60)).padStart(2,"0")}:${String(restRemaining%60).padStart(2,"0")}`;return;}
+        if(target.dataset.rest){restRemaining=Number(target.dataset.rest);restEndsAt=Date.now()+restRemaining*1000;state.settings.restSeconds=restRemaining;saveState();document.querySelectorAll("[data-rest]").forEach(chip=>chip.classList.toggle("selected",chip===target));const display=document.getElementById("timerDisplay");if(display)display.textContent=`${String(Math.floor(restRemaining/60)).padStart(2,"0")}:${String(restRemaining%60).padStart(2,"0")}`;return;}
         if(target.id==="timerDone"){clearInterval(restInterval);closeModal();return;}
         if(target.id==="finishWorkout"){finishWorkout();return;}
         if(target.id==="discardWorkout"){openModal(`<div class="modal-head"><h2 id="modalTitle">Abandon workout?</h2><button class="close-btn" data-close>×</button></div><p style="font-size:13px;margin-bottom:18px">Your completed sets' XP stays earned, but this session won't be added to your history.</p><div class="modal-actions"><button class="btn btn-secondary" data-close>Keep going</button><button class="btn btn-danger" id="confirmDiscard">Abandon</button></div>`);document.getElementById("confirmDiscard").addEventListener("click",()=>{state.active=null;saveState();closeModal();renderAll();toast("Session abandoned.");});return;}

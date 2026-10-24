@@ -4,7 +4,7 @@ FitForge can run as an installable offline PWA or be wrapped in an Android app w
 
 ## Training features
 
-The workout library includes strength, cardio, HIIT, calisthenics, mobility, and recovery routines. Save routines to Favorites for quick access, create your own routines, and review weekly activity and personal best logged weights from the RPG dashboard. Favorites, workout progress, and history are stored on the device and included in JSON backups.
+The workout library includes strength, cardio, HIIT, calisthenics, mobility, and recovery routines. Save routines to Favorites for quick access, create your own routines, and review weekly activity, workout goals, and personal best logged weights from the RPG dashboard. Settings let you choose kilograms or pounds, set the default rest timer, set a rolling seven-day workout goal, and enable or test vibration cues. Preferences, favorites, workout progress, and history are stored on the device and included in JSON backups.
 
 ## Install as a PWA
 
